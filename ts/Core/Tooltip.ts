@@ -1693,11 +1693,19 @@ class Tooltip {
             return boxes;
         }, []);
 
+        const { left: chartLeft, top: chartTop } = pointer.getChartPosition();
+        const isInsideRightBounds = (box: Record<string, any>): boolean => (
+            tooltip.outside ?
+                chartLeft + Math.abs(box.x) + box.boxWidth <
+                (tooltip.container?.clientWidth || doc.body.clientWidth) :
+                box.point.plotX + box.boxWidth < bounds.right
+        );
+
         // If overflow left then align all labels to the right
         // if they do not overflow to the right
         if (!positioner && boxes.some((box): boolean =>
             box.x < bounds.left &&
-            box.point.plotX + box.boxWidth < bounds.right
+            isInsideRightBounds(box)
         )) {
             boxes = boxes.map((box): Record<string, any> => {
                 const { x, y } = defaultPositioner(
@@ -1720,18 +1728,28 @@ class Tooltip {
         // Distribute and put in place
         H.distribute(boxes as any, adjustedPlotHeight);
         boxes.forEach(function (box: Record<string, any>): void {
-            const { anchorX, anchorY, pos, x } = box;
+            const { x, anchorX, anchorY, pos } = box;
+            let adjustedX: typeof x | undefined,
+                adjustedAnchorX: typeof anchorX | undefined;
+
+            // If tooltip is outside, the label should be aligned
+            // relative to the viewport width
+            if (tooltip.outside) {
+                adjustedAnchorX = chartLeft + anchorX;
+                adjustedX = chartLeft + x;
+            }
+
             // Put the label in place
             box.tt.attr({
                 visibility: typeof pos === 'undefined' ? 'hidden' : 'inherit',
-                x,
+                x: pick(adjustedX, x),
                 /* NOTE: y should equal pos to be consistent with !split
                  * tooltip, but is currently relative to plotTop. Is left as is
                  * to avoid breaking change. Remove distributionBoxTop to make
                  * it consistent.
                  */
                 y: pos + distributionBoxTop,
-                anchorX,
+                anchorX: pick(adjustedAnchorX, anchorX),
                 anchorY
             });
         });
@@ -1748,17 +1766,16 @@ class Tooltip {
         } = tooltip;
         if (outside && container && renderer) {
             // Set container size to fit the tooltip
-            const { width, height, x, y } = tooltipLabel.getBBox();
+            const { height, y } = tooltipLabel.getBBox();
             renderer.setSize(
-                width + x,
+                container.parentElement?.clientWidth || doc.body.clientWidth,
                 height + y,
                 false
             );
 
             // Position the tooltip container to the chart container
-            const chartPosition = pointer.getChartPosition();
-            container.style.left = chartPosition.left + 'px';
-            container.style.top = chartPosition.top + 'px';
+            container.style.left = '0px';
+            container.style.top = chartTop + 'px';
         }
     }
 
