@@ -961,9 +961,8 @@ var Tooltip = /** @class */ (function () {
      * @param {Array<Highcharts.Point>} points
      */
     Tooltip.prototype.renderSplit = function (labels, points) {
-        var _a;
         var tooltip = this;
-        var chart = tooltip.chart, _b = tooltip.chart, chartWidth = _b.chartWidth, chartHeight = _b.chartHeight, plotHeight = _b.plotHeight, plotLeft = _b.plotLeft, plotTop = _b.plotTop, pointer = _b.pointer, ren = _b.renderer, _c = _b.scrollablePixelsY, scrollablePixelsY = _c === void 0 ? 0 : _c, _d = _b.scrollingContainer, _e = _d === void 0 ? { scrollLeft: 0, scrollTop: 0 } : _d, scrollLeft = _e.scrollLeft, scrollTop = _e.scrollTop, styledMode = _b.styledMode, distance = tooltip.distance, options = tooltip.options, positioner = tooltip.options.positioner;
+        var chart = tooltip.chart, _a = tooltip.chart, chartWidth = _a.chartWidth, chartHeight = _a.chartHeight, plotHeight = _a.plotHeight, plotLeft = _a.plotLeft, plotTop = _a.plotTop, pointer = _a.pointer, ren = _a.renderer, _b = _a.scrollablePixelsY, scrollablePixelsY = _b === void 0 ? 0 : _b, _c = _a.scrollingContainer, _d = _c === void 0 ? { scrollLeft: 0, scrollTop: 0 } : _c, scrollLeft = _d.scrollLeft, scrollTop = _d.scrollTop, styledMode = _a.styledMode, distance = tooltip.distance, options = tooltip.options, positioner = tooltip.options.positioner;
         // The area which the tooltip should be limited to. Limit to scrollable
         // plot area if enabled, otherwise limit to the chart container.
         var bounds = {
@@ -1147,14 +1146,11 @@ var Tooltip = /** @class */ (function () {
             }
             return boxes;
         }, []);
-        var _f = pointer.getChartPosition(), chartLeft = _f.left, chartTop = _f.top;
-        var isInsideRightBounds = function (box) {
-            var _a;
-            return (tooltip.outside ?
-                chartLeft + Math.abs(box.x) + box.boxWidth <
-                    (((_a = tooltip.container) === null || _a === void 0 ? void 0 : _a.clientWidth) || doc.body.clientWidth) :
-                box.point.plotX + box.boxWidth < bounds.right);
-        };
+        var _e = pointer.getChartPosition(), chartLeft = _e.left, chartTop = _e.top;
+        var isInsideRightBounds = function (box) { return (tooltip.outside ?
+            chartLeft + box.anchorX + distance + box.boxWidth <
+                doc.documentElement.offsetWidth :
+            box.point.plotX + box.boxWidth < bounds.right); };
         // If overflow left then align all labels to the right
         // if they do not overflow to the right
         if (!positioner && boxes.some(function (box) {
@@ -1204,8 +1200,8 @@ var Tooltip = /** @class */ (function () {
         var container = tooltip.container, outside = tooltip.outside, renderer = tooltip.renderer;
         if (outside && container && renderer) {
             // Set container size to fit the tooltip
-            var _g = tooltipLabel.getBBox(), height = _g.height, y = _g.y;
-            renderer.setSize(((_a = container.parentElement) === null || _a === void 0 ? void 0 : _a.clientWidth) || doc.body.clientWidth, height + y, false);
+            var _f = tooltipLabel.getBBox(), height = _f.height, y = _f.y;
+            renderer.setSize(doc.documentElement.offsetWidth, height + y, false);
             // Position the tooltip container to the chart container
             container.style.left = '0px';
             container.style.top = chartTop + 'px';

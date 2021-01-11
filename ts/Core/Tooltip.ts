@@ -1713,8 +1713,8 @@ class Tooltip {
         const { left: chartLeft, top: chartTop } = pointer.getChartPosition();
         const isInsideRightBounds = (box: Record<string, any>): boolean => (
             tooltip.outside ?
-                chartLeft + Math.abs(box.x) + box.boxWidth <
-                (tooltip.container?.clientWidth || doc.body.clientWidth) :
+                chartLeft + box.anchorX + distance + box.boxWidth <
+                doc.documentElement.offsetWidth :
                 box.point.plotX + box.boxWidth < bounds.right
         );
 
@@ -1785,7 +1785,7 @@ class Tooltip {
             // Set container size to fit the tooltip
             const { height, y } = tooltipLabel.getBBox();
             renderer.setSize(
-                container.parentElement?.clientWidth || doc.body.clientWidth,
+                doc.documentElement.offsetWidth,
                 height + y,
                 false
             );
