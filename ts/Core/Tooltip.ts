@@ -1440,6 +1440,7 @@ class Tooltip {
                 pointer,
                 renderer: ren,
                 scrollablePixelsY = 0,
+                scrollablePixelsX,
                 scrollingContainer: {
                     scrollLeft,
                     scrollTop
@@ -1455,15 +1456,18 @@ class Tooltip {
 
         // The area which the tooltip should be limited to. Limit to scrollable
         // plot area if enabled, otherwise limit to the chart container.
-        const bounds = {
-            left: scrollLeft,
-            right: scrollLeft + chartWidth,
-            top: scrollTop,
-            bottom: scrollTop + chartHeight
-        };
+        // If outside is true it should be the whole viewport
+        const bounds = tooltip.outside && !scrollablePixelsX ?
+            doc.documentElement.getBoundingClientRect() : {
+                left: scrollLeft,
+                right: scrollLeft + chartWidth,
+                top: scrollTop,
+                bottom: scrollTop + chartHeight
+            };
 
         const tooltipLabel = tooltip.getLabel();
         const headerTop = Boolean(chart.xAxis[0] && chart.xAxis[0].opposite);
+        const { left: chartLeft, top: chartTop } = pointer.getChartPosition();
 
         let distributionBoxTop = plotTop + scrollTop;
         let headerHeight = 0;
@@ -1502,6 +1506,11 @@ class Tooltip {
                 }
             }
 
+            // Add chart X position to anchorX if not scrollable
+            if (tooltip.outside && !scrollablePixelsX) {
+                anchorX += chartLeft;
+            }
+
             // Limit values to plot area
             anchorX = clamp(
                 anchorX,
@@ -1533,6 +1542,7 @@ class Tooltip {
         ): PositionObject {
             let y;
             let x;
+
             if (isHeader) {
                 y = headerTop ? 0 : adjustedPlotHeight;
                 x = clamp(
@@ -1710,18 +1720,16 @@ class Tooltip {
             return boxes;
         }, []);
 
-        const { left: chartLeft, top: chartTop } = pointer.getChartPosition();
         const isInsideRightBounds = (box: Record<string, any>): boolean => (
-            tooltip.outside ?
-                chartLeft + box.anchorX + distance + box.boxWidth <
-                doc.documentElement.offsetWidth :
-                box.point.plotX + box.boxWidth < bounds.right
+            (tooltip.outside ?
+                box.anchorX + distance + box.boxWidth :
+                box.point.plotX + box.boxWidth) < bounds.right
         );
 
         // If overflow left then align all labels to the right
         // if they do not overflow to the right
         if (!positioner && boxes.some((box): boolean =>
-            box.x < bounds.left &&
+            box.x < scrollLeft &&
             isInsideRightBounds(box)
         )) {
             boxes = boxes.map((box): Record<string, any> => {
@@ -1746,27 +1754,18 @@ class Tooltip {
         H.distribute(boxes as any, adjustedPlotHeight);
         boxes.forEach(function (box: Record<string, any>): void {
             const { x, anchorX, anchorY, pos } = box;
-            let adjustedX: typeof x | undefined,
-                adjustedAnchorX: typeof anchorX | undefined;
-
-            // If tooltip is outside, the label should be aligned
-            // relative to the viewport width
-            if (tooltip.outside) {
-                adjustedAnchorX = chartLeft + anchorX;
-                adjustedX = chartLeft + x;
-            }
 
             // Put the label in place
             box.tt.attr({
                 visibility: typeof pos === 'undefined' ? 'hidden' : 'inherit',
-                x: pick(adjustedX, x),
+                x,
                 /* NOTE: y should equal pos to be consistent with !split
                  * tooltip, but is currently relative to plotTop. Is left as is
                  * to avoid breaking change. Remove distributionBoxTop to make
                  * it consistent.
                  */
                 y: pos + distributionBoxTop,
-                anchorX: pick(adjustedAnchorX, anchorX),
+                anchorX,
                 anchorY
             });
         });
@@ -1782,16 +1781,16 @@ class Tooltip {
             renderer
         } = tooltip;
         if (outside && container && renderer) {
-            // Set container size to fit the tooltip
-            const { height, y } = tooltipLabel.getBBox();
+            // Set container size to fit the bounds
+            const { width, x } = tooltipLabel.getBBox();
             renderer.setSize(
-                doc.documentElement.offsetWidth,
-                height + y,
+                scrollablePixelsX ? width + x : bounds.right - bounds.left,
+                bounds.bottom - bounds.top,
                 false
             );
 
             // Position the tooltip container to the chart container
-            container.style.left = '0px';
+            container.style.left = (scrollablePixelsX ? chartLeft : bounds.left) + 'px';
             container.style.top = chartTop + 'px';
         }
     }
