@@ -255,7 +255,7 @@ var Fx = /** @class */ (function () {
             while (arr.length < fullLength) {
                 // Move to, line to or curve to?
                 var moveSegment = arr[0], otherSegment = other[fullLength - arr.length];
-                if (otherSegment && moveSegment[0] === 'M') {
+                if (otherSegment && moveSegment && moveSegment[0] === 'M') {
                     if (otherSegment[0] === 'C') {
                         arr[0] = [
                             'C',
